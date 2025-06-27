@@ -1,16 +1,16 @@
-import {PrismaClient} from '@prisma/client';
-import pino from 'pino';
+import { PrismaClient } from "@prisma/client";
+import pino from "pino";
 import {
   type AutoCacheConfig,
   CacheCase,
   type CacheConfig,
   PrismaExtensionRedis,
-} from 'prisma-extension-redis';
-import {SuperJSON} from 'superjson';
+} from "prisma-extension-redis";
+import { SuperJSON } from "superjson";
 
-import {users} from './data';
-import env from './env';
-import {getRandomValue} from './utils';
+import { users } from "./data";
+import env from "./env";
+import { getRandomValue } from "./utils";
 
 // Create a Redis client
 const client = {
@@ -22,11 +22,11 @@ const client = {
 const logger = pino();
 
 const auto: AutoCacheConfig = {
-  excludedModels: ['Post'], // Models to exclude from auto-caching default behavior
-  excludedOperations: ['findFirst', 'findMany'], // Operations to exclude from auto-caching default behavior
+  excludedModels: ["Post"], // Models to exclude from auto-caching default behavior
+  excludedOperations: ["findFirst", "findMany"], // Operations to exclude from auto-caching default behavior
   models: [
     {
-      model: 'User',
+      model: "User",
       excludedOperations: [],
       ttl: 120, // Time-to-live for caching in seconds
       stale: 30, // Stale time for caching in seconds
@@ -47,7 +47,7 @@ const config: CacheConfig = {
   // },
   // onHit: (key: string) => console.log(`FOUND CACHE: ${key}`),
   // onMiss: (key: string) => console.log(`NOT FOUND CACHE: ${key}`),
-  type: 'JSON', // the redis instance must support JSON module if you chose to use JSON type cache
+  type: "JSON", // the redis instance must support JSON module if you chose to use JSON type cache
   // cacheKey: {
   // case: CacheCase.CAMEL_CASE,
   // delimiter: '*',
@@ -56,14 +56,16 @@ const config: CacheConfig = {
 };
 
 const prisma = new PrismaClient();
-const extendedPrisma = prisma.$extends(PrismaExtensionRedis({config, client}));
+const extendedPrisma = prisma.$extends(
+  PrismaExtensionRedis({ config, client })
+);
 
 const resultSourceString = (isCached: boolean) =>
-  isCached ? 'CACHE' : 'DATABASE';
+  isCached ? "CACHE" : "DATABASE";
 
 const main = async () => {
   await Promise.all(
-    users.map(user =>
+    users.map((user) =>
       extendedPrisma.user.upsert({
         where: {
           email: user.email,
@@ -76,11 +78,11 @@ const main = async () => {
         update: {},
         // at the moment you cannot cache during upsert, uncache works normal, as below!
         uncache: {
-          uncacheKeys: ['*'], // USING WILDCARD '*' - DANGEROUS OPERATION - DELETES EVERYTHING FROM CACHE
+          uncacheKeys: ["*"], // USING WILDCARD '*' - DANGEROUS OPERATION - DELETES EVERYTHING FROM CACHE
           hasPattern: true,
         },
-      }),
-    ),
+      })
+    )
   );
 
   const usedUsers: number[] = [];
@@ -90,52 +92,52 @@ const main = async () => {
 
   await extendedPrisma.user
     .findUnique({
-      where: {email: userOne.email},
+      where: { email: userOne.email },
     })
-    .then(({result: user, isCached}) =>
+    .then(({ result: user, isCached }) =>
       console.info(`AUTO: ${resultSourceString(isCached)}: Find userOne`, {
         user,
         isCached,
-      }),
+      })
     );
 
   await extendedPrisma.user
     .findUnique({
-      where: {email: userOne.email},
+      where: { email: userOne.email },
     })
-    .then(({result: user, isCached}) =>
+    .then(({ result: user, isCached }) =>
       console.info(`AUTO: ${resultSourceString(isCached)}: Find userOne`, {
         user,
         isCached,
-      }),
+      })
     );
 
   await extendedPrisma.user
     .findUnique({
-      where: {email: userOne.email},
+      where: { email: userOne.email },
       cache: {
         key: extendedPrisma.getKey({
-          params: [{prisma: 'User'}, {email: userOne.email}],
+          params: [{ prisma: "User" }, { email: userOne.email }],
         }),
       },
     })
-    .then(({result: user, isCached}) =>
+    .then(({ result: user, isCached }) =>
       console.info(`CUSTOM: ${resultSourceString(isCached)}: Find userOne`, {
         user,
         isCached,
-      }),
+      })
     );
 
   await extendedPrisma.user
     .findUnique({
-      where: {email: userOne.email},
+      where: { email: userOne.email },
       cache: {
         key: extendedPrisma.getKey({
-          params: [{prisma: 'User'}, {email: userOne.email}],
+          params: [{ prisma: "User" }, { email: userOne.email }],
         }),
       },
     })
-    .then(({result: user, isCached}) =>
+    .then(({ result: user, isCached }) =>
       console.info(`CUSTOM: ${resultSourceString(isCached)}: Find userOne`, {
         // transforming date type value retrieved from cache to confirm that the date is parsed correctly
         // user: {
@@ -144,71 +146,73 @@ const main = async () => {
         // },
         user,
         isCached,
-      }),
+      })
     );
 
   await extendedPrisma.user
     .delete({
-      where: {id: userOne.id},
+      where: { id: userOne.id },
       uncache: {
         uncacheKeys: [
           extendedPrisma.getKey({
-            params: [{prisma: 'User'}, {email: userOne.email}],
+            params: [{ prisma: "User" }, { email: userOne.email }],
           }),
         ],
       },
     })
-    .then(({result: deleted}) =>
-      console.info({type: 'UNCACHE: DATABASE: Deleted userOne', deleted}),
+    .then(({ result: deleted }) =>
+      console.info({ type: "UNCACHE: DATABASE: Deleted userOne", deleted })
     );
 
-  const userTwo = getRandomValue(users.filter(u => !usedUsers.includes(u.id)));
+  const userTwo = getRandomValue(
+    users.filter((u) => !usedUsers.includes(u.id))
+  );
   usedUsers.push(userTwo.id);
 
   await extendedPrisma.user
     .update({
-      where: {email: userTwo.email},
-      data: {name: userOne.name},
+      where: { email: userTwo.email },
+      data: { name: userOne.name },
       uncache: {
         uncacheKeys: [
           extendedPrisma.getKey({
-            params: [{prisma: 'User'}, {email: userOne.email}],
+            params: [{ prisma: "User" }, { email: userOne.email }],
           }),
         ],
       },
     })
-    .then(({result: updated}) =>
-      console.info({type: 'UNCACHE: DATABASE: Update userTwo', updated}),
+    .then(({ result: updated }) =>
+      console.info({ type: "UNCACHE: DATABASE: Update userTwo", updated })
     );
 
   await extendedPrisma.user
     .findUnique({
-      where: {email: userTwo.email},
+      where: { email: userTwo.email },
       cache: {
         key: extendedPrisma.getKey({
-          params: [{prisma: 'User'}, {email: userOne.email}],
+          params: [{ prisma: "User" }, { email: userOne.email }],
         }),
         ttl: 60,
       },
     })
-    .then(({result: user, isCached}) =>
+    .then(({ result: user, isCached }) =>
       console.info(`CUSTOM: ${resultSourceString(isCached)}: Find userTwo`, {
         user,
         isCached,
-      }),
+      })
     );
 
   await extendedPrisma.user
     .findUnique({
-      where: {email: userTwo.email},
+      where: { email: userTwo.email },
       cache: {
         key: extendedPrisma.getKey({
-          params: [{prisma: 'User'}, {email: userOne.email}],
+          params: [{ prisma: "User" }, { email: userOne.email }],
         }),
         ttl: 60,
       },
     })
-    .then(({result: user, isCached}) =>
+    .then(({ result: user, isCached }) =>
       console.info(`CUSTOM: ${resultSourceString(isCached)}: Find userTwo`, {
         // transforming date type value retrieved from cache to confirm that the date is parsed correctly
         // user: {
@@ -217,22 +221,22 @@ const main = async () => {
         // },
         user,
         isCached,
-      }),
+      })
     );
 
   setTimeout(async () => {
     await extendedPrisma.user
       .findUnique({
-        where: {email: userOne.email},
+        where: { email: userOne.email },
       })
-      .then(({result: user, isCached}) =>
+      .then(({ result: user, isCached }) =>
         console.info(`AUTO: ${resultSourceString(isCached)}: Find userOne`, {
           user,
           isCached,
-        }),
+        })
       );
 
-    const args = {where: {email: userOne.email}};
+    const args = { where: { email: userOne.email } };
 
     // below example uses auto cache key generation function to fetch the results of the auto cache query (above)
     // similarly, this can be used to uncache an auto cached query during any mutation (this does not support patterns)
@@ -243,25 +247,27 @@ const main = async () => {
           // make sure to use the correct args, model and operation here as it is not being validated
           key: extendedPrisma.getAutoKey({
             args,
-            model: 'user',
-            operation: 'findUnique',
+            model: "user",
+            operation: "findUnique",
           }),
         },
       })
-      .then(({result: user, isCached}) =>
+      .then(({ result: user, isCached }) =>
         console.info(
-          `CUSTOM: ${resultSourceString(isCached)}: WITH AUTO KEY: Find userOne`,
+          `CUSTOM: ${resultSourceString(
+            isCached
+          )}: WITH AUTO KEY: Find userOne`,
           {
             user,
             isCached,
-          },
-        ),
+          }
+        )
       );
   }, 100000);
 };
 
 main()
-  .catch(e => {
+  .catch((e) => {
     throw e;
   })
   .finally(async () => {
