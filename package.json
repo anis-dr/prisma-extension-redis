@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@prisma/client": "^6.5.0",
+    "@prisma/client": "^6.10.1",
     "@types/bun": "^1.1.13",
     "@types/lodash-es": "^4.17.12",
     "@types/micromatch": "^4.0.9",
@@ -80,7 +80,7 @@
     ]
   },
   "peerDependencies": {
-    "@prisma/client": "^6.5.0"
+    "@prisma/client": "^6.10.1"
   },
   "dependencies": {
     "iovalkey": "^0.2.1",
